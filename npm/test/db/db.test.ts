@@ -265,12 +265,12 @@ tap.test('dbs', async () => {
         {
           // secondary index on city
           name: 'city',
-          value: record1.city,
+          addValue: record1.city,
         },
         {
           // secondary index on name
           name: 'name',
-          value: record1.name,
+          addValue: record1.name,
         }
       );
 
@@ -283,12 +283,12 @@ tap.test('dbs', async () => {
         {
           // secondary index on city
           name: 'city',
-          value: record2.city,
+          addValue: record2.city,
         },
         {
           // secondary index on name
           name: 'name',
-          value: record2.name,
+          addValue: record2.name,
         }
       );
 
@@ -301,12 +301,12 @@ tap.test('dbs', async () => {
         {
           // secondary index on city
           name: 'city',
-          value: record3.city,
+          addValue: record3.city,
         },
         {
           // secondary index on name
           name: 'name',
-          value: record3.name,
+          addValue: record3.name,
         }
       );
     });
@@ -544,11 +544,11 @@ tap.test('dbs', async () => {
         record1,
         {
           name: 'city',
-          value: record1.city,
+          addValue: record1.city,
         },
         {
           name: 'name',
-          value: record1.name,
+          addValue: record1.name,
         }
       );
 
@@ -557,11 +557,11 @@ tap.test('dbs', async () => {
         record2,
         {
           name: 'city',
-          value: record2.city,
+          addValue: record2.city,
         },
         {
           name: 'name',
-          value: record2.name,
+          addValue: record2.name,
         }
       );
 

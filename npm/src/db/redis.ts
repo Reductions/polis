@@ -4,6 +4,9 @@ import {
   DatabaseOption,
   Encrypted,
   Index,
+  IndexUpdate,
+  isIndexAdd,
+  isIndexRemove,
   Records,
   RequiredLogger,
   SortOrder,
@@ -151,7 +154,13 @@ class Redis implements DatabaseDriver {
     return { data: returnValue || [] };
   }
 
-  async put(namespace: string, key: string, val: Encrypted, ttl = 0, ...indexes: any[]): Promise<void> {
+  async put(
+    namespace: string,
+    key: string,
+    val: Encrypted,
+    ttl = 0,
+    ...indexes: IndexUpdate[]
+  ): Promise<void> {
     let tx = this.client.multi();
     const k = dbutils.key(namespace, key);
 
@@ -163,9 +172,17 @@ class Redis implements DatabaseDriver {
 
     // no ttl support for secondary indexes
     for (const idx of indexes || []) {
-      const idxKey = dbutils.keyForIndex(namespace, idx);
-      tx = tx.sAdd(dbutils.keyFromParts(dbutils.indexPrefix, idxKey), key);
-      tx = tx.sAdd(dbutils.keyFromParts(dbutils.indexPrefix, k), idxKey);
+      if (isIndexAdd(idx)) {
+        const idxKey = dbutils.keyForIndexAdd(namespace, idx);
+        tx = tx.sAdd(dbutils.keyFromParts(dbutils.indexPrefix, idxKey), key);
+        tx = tx.sAdd(dbutils.keyFromParts(dbutils.indexPrefix, k), idxKey);
+      }
+
+      if (isIndexRemove(idx)) {
+        const oldIdxKey = dbutils.keyForIndexRemove(namespace, idx);
+        tx = tx.sRem(dbutils.keyFromParts(dbutils.indexPrefix, oldIdxKey), key);
+        tx = tx.sRem(dbutils.keyFromParts(dbutils.indexPrefix, k), oldIdxKey);
+      }
     }
     const timestamp = Number(Date.now());
     // Converting Timestamp in negative so that when we get the value,

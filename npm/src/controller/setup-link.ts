@@ -266,19 +266,19 @@ export class SetupLinkController {
       setupLink,
       {
         name: IndexNames.SetupToken,
-        value: token,
+        addValue: token,
       },
       {
         name: IndexNames.TenantProductService,
-        value: dbutils.keyFromParts(tenant, product, service),
+        addValue: dbutils.keyFromParts(tenant, product, service),
       },
       {
         name: IndexNames.Service,
-        value: service,
+        addValue: service,
       },
       {
         name: IndexNames.ProductService,
-        value: dbutils.keyFromParts(product, service),
+        addValue: dbutils.keyFromParts(product, service),
       }
     );
 

@@ -35,12 +35,14 @@ tap.test('Directory groups /', async (t) => {
 
   t.test('Directory groups /', async (t) => {
     let createdGroup: any;
+    let groupsToCleanUp: any[];
 
     t.beforeEach(async () => {
       // Create a group before each test
       const { data } = await directorySync.requests.handle(groupsRequest.create(directory, groups[0]));
 
       createdGroup = data;
+      groupsToCleanUp = [createdGroup];
 
       // Creating same group again should return 409
       const { status } = await directorySync.requests.handle(groupsRequest.create(directory, groups[0]));
@@ -50,7 +52,9 @@ tap.test('Directory groups /', async (t) => {
 
     t.afterEach(async () => {
       // Delete the group after each test
-      await directorySync.groups.delete(createdGroup.id);
+      for (const group of groupsToCleanUp) {
+        await directorySync.groups.delete(group.id);
+      }
     });
 
     t.test('Should be able to create a new group', async (t) => {
@@ -111,6 +115,32 @@ tap.test('Directory groups /', async (t) => {
       t.ok(data);
       t.equal(status, 200);
       t.equal(data.displayName, 'Developers Updated');
+    });
+
+    t.test('Should be able to create a group with the original name of a renamed group', async (t) => {
+      const request = groupsRequest.updateName(directory, createdGroup.id, {
+        ...createdGroup,
+        displayName: 'Developers Updated',
+      });
+
+      const { status } = await directorySync.requests.handle(request);
+      t.equal(status, 200);
+
+      const callback = async (event: DirectorySyncEvent) => {
+        t.match(event.event, 'group.created');
+        t.match(event.data, { name: 'Developers' });
+      };
+
+      const { status: createStatus, data } = await directorySync.requests.handle(
+        groupsRequest.create(directory, groups[0]),
+        callback
+      );
+
+      t.equal(createStatus, 201);
+      t.hasStrict(data, groups[0]);
+      t.ok('id' in data);
+
+      groupsToCleanUp.push(data);
     });
 
     t.test('Should be able to delete a group', async (t) => {

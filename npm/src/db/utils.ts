@@ -1,5 +1,5 @@
 import Ripemd160 from 'ripemd160';
-import { Index } from '../typings';
+import { Index, IndexAddUpdate, IndexRemoveUpdate } from '../typings';
 
 export const parsePGOptions = (url: string) => {
   const parsedUrl = new URL(url);
@@ -40,6 +40,20 @@ export const key = (namespace: string, k: string): string => {
 
 export const keyForIndex = (namespace: string, idx: Index): string => {
   return key(key(namespace, idx.name), idx.value);
+};
+
+export const keyForIndexAdd = (namespace: string, idx: IndexAddUpdate): string => {
+  return keyForIndex(namespace, {
+    name: idx.name,
+    value: idx.addValue,
+  });
+};
+
+export const keyForIndexRemove = (namespace: string, idx: IndexRemoveUpdate): string => {
+  return keyForIndex(namespace, {
+    name: idx.name,
+    value: idx.removeValue,
+  });
 };
 
 export const keyDigest = (k: string): string => {

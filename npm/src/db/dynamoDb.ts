@@ -10,7 +10,16 @@ import {
   UpdateTimeToLiveCommand,
 } from '@aws-sdk/client-dynamodb';
 import { marshall, unmarshall, NativeAttributeValue } from '@aws-sdk/util-dynamodb';
-import { DatabaseDriver, DatabaseOption, Encrypted, Index, Records } from '../typings';
+import {
+  DatabaseDriver,
+  DatabaseOption,
+  Encrypted,
+  Index,
+  IndexUpdate,
+  isIndexAdd,
+  isIndexRemove,
+  Records,
+} from '../typings';
 import * as dbutils from './utils';
 
 const getSeconds = (date: Date) => Math.floor(date.getTime() / 1000);
@@ -263,7 +272,13 @@ class DynamoDB implements DatabaseDriver {
     return { data: items, pageToken: newPageToken };
   }
 
-  async put(namespace: string, key: string, val: Encrypted, ttl = 0, ...indexes: any[]): Promise<void> {
+  async put(
+    namespace: string,
+    key: string,
+    val: Encrypted,
+    ttl = 0,
+    ...indexes: IndexUpdate[]
+  ): Promise<void> {
     const dbKey = dbutils.key(namespace, key);
     const now = getSeconds(new Date());
     const doc: Record<string, NativeAttributeValue> = {
@@ -281,17 +296,32 @@ class DynamoDB implements DatabaseDriver {
     const indexWrites: WriteRequest[] = [];
     // no ttl support for secondary indexes
     for (const idx of indexes || []) {
-      const idxKey = dbutils.keyForIndex(namespace, idx);
+      if (isIndexAdd(idx)) {
+        const idxKey = dbutils.keyForIndexAdd(namespace, idx);
 
-      indexWrites.push({
-        PutRequest: {
-          Item: marshall({
-            namespace,
-            key: idxKey,
-            storeKey: dbKey,
-          }),
-        },
-      });
+        indexWrites.push({
+          PutRequest: {
+            Item: marshall({
+              namespace,
+              key: idxKey,
+              storeKey: dbKey,
+            }),
+          },
+        });
+      }
+
+      if (isIndexRemove(idx)) {
+        const oldIdxKey = dbutils.keyForIndexRemove(namespace, idx);
+
+        indexWrites.push({
+          DeleteRequest: {
+            Key: marshall({
+              namespace,
+              key: oldIdxKey,
+            }),
+          },
+        });
+      }
     }
 
     if (indexWrites.length > 0) {

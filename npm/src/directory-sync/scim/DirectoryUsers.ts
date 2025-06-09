@@ -72,7 +72,7 @@ export class DirectoryUsers {
   public async update(directory: Directory, user: User, body: any): Promise<DirectorySyncResponse> {
     const userAttributes = extractStandardUserAttributes(body);
 
-    const { data: updatedUser } = await this.users.update(user.id, {
+    const { data: updatedUser } = await this.users.update(user, directory.id, {
       ...userAttributes,
       id: user.id,
       raw: 'rawAttributes' in body ? body.rawAttributes : body,
@@ -107,7 +107,7 @@ export class DirectoryUsers {
       };
     }
 
-    const { data: updatedUser } = await this.users.update(user.id, {
+    const { data: updatedUser } = await this.users.update(user, directory.id, {
       ...user,
       ...attributes,
       raw: updateRawUserAttributes(user.raw, rawAttributes),

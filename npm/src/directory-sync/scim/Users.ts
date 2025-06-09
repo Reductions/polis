@@ -1,4 +1,4 @@
-import type { User, DatabaseStore, PaginationParams, Response, Records } from '../../typings';
+import type { User, DatabaseStore, PaginationParams, Response, Records, IndexUpdate } from '../../typings';
 import { apiError, JacksonError } from '../../controller/error';
 import { Base } from './Base';
 import { keyFromParts } from '../../db/utils';
@@ -19,11 +19,11 @@ export class Users extends Base {
         user,
         {
           name: indexNames.directoryIdUsername,
-          value: keyFromParts(directoryId, email),
+          addValue: keyFromParts(directoryId, email),
         },
         {
           name: indexNames.directoryId,
-          value: directoryId,
+          addValue: directoryId,
         }
       );
 
@@ -114,18 +114,32 @@ export class Users extends Base {
   }
 
   // Update the user data
-  public async update(id: string, user: User): Promise<Response<User>> {
-    const { raw } = user;
+  public async update(storedUser: User, directoryId: string, userUpdate: User): Promise<Response<User>> {
+    const { raw } = userUpdate;
 
-    raw['id'] = id;
+    raw['id'] = storedUser.id;
 
     const updatedUser = {
-      ...user,
+      ...userUpdate,
       raw,
     };
 
+    const indexUpdates: IndexUpdate[] = [];
+
+    if (storedUser.email !== userUpdate.email) {
+      indexUpdates.push({
+        name: indexNames.directoryIdUsername,
+        addValue: keyFromParts(directoryId, storedUser.email),
+      });
+
+      indexUpdates.push({
+        name: indexNames.directoryIdUsername,
+        addValue: keyFromParts(directoryId, userUpdate.email),
+      });
+    }
+
     try {
-      await this.store('users').put(id, updatedUser);
+      await this.store('users').put(storedUser.id, updatedUser);
       return { data: updatedUser, error: null };
     } catch (err: any) {
       return apiError(err);

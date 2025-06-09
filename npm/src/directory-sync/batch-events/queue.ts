@@ -9,6 +9,7 @@ import type {
   CronLock,
   IWebhookEventsLogger,
   JacksonOptionWithRequiredLogger,
+  IndexUpdate,
 } from '../../typings';
 import { sendPayloadToWebhook } from '../../event/webhook';
 import { isConnectionActive } from '../../controller/utils';
@@ -75,10 +76,10 @@ export class EventProcessor {
       created_at: new Date().toISOString(),
     };
 
-    const index = [
+    const index: IndexUpdate[] = [
       {
         name: indexNames.directoryId,
-        value: event.directory_id,
+        addValue: event.directory_id,
       },
     ];
 

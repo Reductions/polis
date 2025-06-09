@@ -233,17 +233,17 @@ const saml = {
       record,
       {
         name: IndexNames.EntityID, // secondary index on entityID
-        value: idpMetadata.entityID,
+        addValue: idpMetadata.entityID,
       },
       {
         // secondary index on tenant + product
         name: IndexNames.TenantProduct,
-        value: dbutils.keyFromParts(tenant, product),
+        addValue: dbutils.keyFromParts(tenant, product),
       },
       {
         // secondary index on product
         name: IndexNames.Product,
-        value: product,
+        addValue: product,
       }
     );
 
@@ -386,17 +386,17 @@ const saml = {
       {
         // secondary index on entityID
         name: IndexNames.EntityID,
-        value: _savedConnection.idpMetadata.entityID,
+        addValue: _savedConnection.idpMetadata.entityID,
       },
       {
         // secondary index on tenant + product
         name: IndexNames.TenantProduct,
-        value: dbutils.keyFromParts(_savedConnection.tenant, _savedConnection.product),
+        addValue: dbutils.keyFromParts(_savedConnection.tenant, _savedConnection.product),
       },
       {
         // secondary index on product
         name: IndexNames.Product,
-        value: _savedConnection.product,
+        addValue: _savedConnection.product,
       }
     );
 

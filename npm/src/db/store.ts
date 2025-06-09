@@ -1,4 +1,4 @@
-import { Index, Records, SortOrder, Storable } from '../typings';
+import { Index, IndexUpdate, isIndexAdd, isIndexRemove, Records, SortOrder, Storable } from '../typings';
 import * as dbutils from './utils';
 
 class Store implements Storable {
@@ -43,9 +43,14 @@ class Store implements Storable {
     return await this.db.getCount(this.namespace, idx);
   }
 
-  async put(key: string, val: any, ...indexes: Index[]): Promise<any> {
+  async put(key: string, val: any, ...indexes: IndexUpdate[]): Promise<any> {
     indexes = (indexes || []).map((idx) => {
-      idx.value = dbutils.keyDigest(idx.value);
+      if (isIndexRemove(idx)) {
+        idx.removeValue = dbutils.keyDigest(idx.removeValue);
+      }
+      if (isIndexAdd(idx)) {
+        idx.addValue = dbutils.keyDigest(idx.addValue);
+      }
       return idx;
     });
 
