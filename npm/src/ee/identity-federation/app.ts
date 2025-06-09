@@ -9,6 +9,7 @@ import type {
   GetByProductParams,
   AppRequestParams,
   Index,
+  IndexUpdate,
 } from '../../typings';
 import { fedAppID, clientIDFederatedPrefix, GENERIC_ERR_STRING } from '../../controller/utils';
 import { JacksonError } from '../../controller/error';
@@ -228,17 +229,17 @@ export class App {
       app.clientSecret = crypto.randomBytes(24).toString('hex');
     }
 
-    const indexes = [
+    const indexes: IndexUpdate[] = [
       {
         name: IndexNames.Product,
-        value: product,
+        addValue: product,
       },
     ];
 
     if (type !== 'oidc') {
       indexes.push({
         name: IndexNames.EntityID,
-        value: entityId,
+        addValue: entityId,
       });
     }
 

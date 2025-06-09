@@ -1,4 +1,10 @@
-import { GetByProductParams, Records, Storable, JacksonOptionWithRequiredLogger } from '../typings';
+import {
+  GetByProductParams,
+  Records,
+  Storable,
+  JacksonOptionWithRequiredLogger,
+  IndexUpdate,
+} from '../typings';
 import { generateMnemonic } from '@boxyhq/error-code-mnemonic';
 import { IndexNames } from '../controller/utils';
 import { keyFromParts } from '../db/utils';
@@ -42,27 +48,25 @@ class SSOTraces {
       const traceValue: Trace = { ...payload, traceId, timestamp };
       const { tenant, product, clientID } = context;
 
-      const indices = [
+      const indexes: IndexUpdate[] = [
         {
           name: IndexNames.TenantProduct,
-          value: keyFromParts(tenant, product),
+          addValue: keyFromParts(tenant, product),
           filterLogic: ({ tenant, product }) => !!(tenant && product),
         },
         {
           name: IndexNames.SSOClientID,
-          value: clientID,
+          addValue: clientID,
           filterLogic: ({ clientID }) => !!clientID,
         },
         {
           name: IndexNames.Product,
-          value: product,
+          addValue: product,
           filterLogic: ({ product }) => !!product,
         },
-      ]
-        .filter(({ filterLogic }) => filterLogic(context))
-        .map(({ name, value }) => ({ name, value }));
+      ].filter(({ filterLogic }) => filterLogic(context));
 
-      await this.tracesStore.put(traceId, traceValue, ...indices);
+      await this.tracesStore.put(traceId, traceValue, ...indexes);
       return traceId;
     } catch (err: unknown) {
       this.opts.logger.error(`Failed to save trace`, err);

@@ -13,6 +13,7 @@ import type {
   IEventController,
   Response,
   Index,
+  IndexUpdate,
 } from '../../typings';
 import * as dbutils from '../../db/utils';
 import {
@@ -265,14 +266,14 @@ export class DirectoryConfig {
         };
       }
 
-      const indexes: Index[] = [
+      const indexes: IndexUpdate[] = [
         {
           name: IndexNames.TenantProduct,
-          value: dbutils.keyFromParts(tenant, product),
+          addValue: dbutils.keyFromParts(tenant, product),
         },
         {
           name: IndexNames.Product,
-          value: product,
+          addValue: product,
         },
       ];
 
@@ -280,7 +281,7 @@ export class DirectoryConfig {
       if (!isSCIMProvider) {
         indexes.push({
           name: storeNamespacePrefix.dsync.providers,
-          value: type,
+          addValue: type,
         });
       }
 

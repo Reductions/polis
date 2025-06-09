@@ -5,6 +5,7 @@ import {
   Encrypted,
   EncryptionKey,
   Index,
+  IndexUpdate,
   Records,
   RequiredLogger,
   SortOrder,
@@ -116,7 +117,13 @@ class DB implements DatabaseDriver {
   }
 
   // ttl is in seconds
-  async put(namespace: string, key: string, val: unknown, ttl = 0, ...indexes: Index[]): Promise<unknown> {
+  async put(
+    namespace: string,
+    key: string,
+    val: unknown,
+    ttl = 0,
+    ...indexes: IndexUpdate[]
+  ): Promise<unknown> {
     const dbVal = this.encryptionKey
       ? encrypter.encrypt(JSON.stringify(val), this.encryptionKey)
       : { value: JSON.stringify(val) };

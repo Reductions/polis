@@ -4,6 +4,9 @@ import {
   DatabaseOption,
   Encrypted,
   Index,
+  IndexUpdate,
+  isIndexAdd,
+  isIndexRemove,
   Records,
   RequiredLogger,
   SortOrder,
@@ -21,7 +24,7 @@ type _Document = {
 class Mongo implements DatabaseDriver {
   private options: DatabaseOption;
   private client!: MongoClient;
-  private collection!: Collection;
+  private collection!: Collection<_Document>;
   private db!: Db;
   private logger: RequiredLogger;
 
@@ -41,7 +44,7 @@ class Mongo implements DatabaseDriver {
     }
 
     this.db = this.client.db();
-    this.collection = this.db.collection('jacksonStore');
+    this.collection = this.db.collection<_Document>('jacksonStore');
 
     await this.collection.createIndex({ indexes: 1 });
     await this.collection.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 1 });
@@ -146,7 +149,7 @@ class Mongo implements DatabaseDriver {
       )
       .toArray();
 
-    const ret: string[] = [];
+    const ret: Records['data'] = [];
     for (const doc of docs || []) {
       ret.push(doc.value);
     }
@@ -165,7 +168,13 @@ class Mongo implements DatabaseDriver {
     return count;
   }
 
-  async put(namespace: string, key: string, val: Encrypted, ttl = 0, ...indexes: any[]): Promise<void> {
+  async put(
+    namespace: string,
+    key: string,
+    val: Encrypted,
+    ttl = 0,
+    ...indexes: IndexUpdate[]
+  ): Promise<void> {
     const doc = <_Document>{
       value: val,
     };
@@ -175,13 +184,19 @@ class Mongo implements DatabaseDriver {
     }
     doc.namespace = namespace;
     // no ttl support for secondary indexes
-    for (const idx of indexes || []) {
-      const idxKey = dbutils.keyForIndex(namespace, idx);
 
-      if (!doc.indexes) {
-        doc.indexes = [];
+    const indexAdd: string[] = [];
+    const indexRemove: string[] = [];
+    for (const idx of indexes || []) {
+      if (isIndexAdd(idx)) {
+        const idxKey = dbutils.keyForIndexAdd(namespace, idx);
+        indexAdd.push(idxKey);
       }
-      doc.indexes.push(idxKey);
+
+      if (isIndexRemove(idx)) {
+        const oldKey = dbutils.keyForIndexRemove(namespace, idx);
+        indexRemove.push(oldKey);
+      }
     }
 
     doc.modifiedAt = new Date().toISOString();
@@ -189,6 +204,12 @@ class Mongo implements DatabaseDriver {
       { _id: dbutils.key(namespace, key) as any },
       {
         $set: doc,
+        $addToSet: {
+          indexes: { $each: indexAdd },
+        },
+        $pull: {
+          indexes: { $in: indexRemove },
+        },
         $setOnInsert: {
           createdAt: new Date().toISOString(),
         },

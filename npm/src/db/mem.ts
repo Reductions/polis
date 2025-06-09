@@ -1,6 +1,16 @@
 // This is an in-memory implementation to be used with testing and prototyping only
 
-import { DatabaseDriver, DatabaseOption, Index, Encrypted, Records, SortOrder } from '../typings';
+import {
+  DatabaseDriver,
+  DatabaseOption,
+  Index,
+  Encrypted,
+  Records,
+  SortOrder,
+  isIndexRemove,
+  IndexUpdate,
+  isIndexAdd,
+} from '../typings';
 import * as dbutils from './utils';
 
 class Mem implements DatabaseDriver {
@@ -134,7 +144,13 @@ class Mem implements DatabaseDriver {
     return { data: ret };
   }
 
-  async put(namespace: string, key: string, val: Encrypted, ttl = 0, ...indexes: any[]): Promise<any> {
+  async put(
+    namespace: string,
+    key: string,
+    val: Encrypted,
+    ttl = 0,
+    ...indexes: IndexUpdate[]
+  ): Promise<any> {
     const k = dbutils.key(namespace, key);
 
     this.store[k] = val;
@@ -148,22 +164,38 @@ class Mem implements DatabaseDriver {
     }
     // no ttl support for secondary indexes
     for (const idx of indexes || []) {
-      const idxKey = dbutils.keyForIndex(namespace, idx);
-      let set = this.indexes[idxKey];
-      if (!set) {
-        set = new Set();
-        this.indexes[idxKey] = set;
+      if (isIndexAdd(idx)) {
+        const idxKey = dbutils.keyForIndexAdd(namespace, idx);
+        let set = this.indexes[idxKey];
+        if (!set) {
+          set = new Set();
+          this.indexes[idxKey] = set;
+        }
+
+        set.add(key);
+        const cleanupKey = dbutils.keyFromParts(dbutils.indexPrefix, k);
+        let cleanup = this.cleanup[cleanupKey];
+        if (!cleanup) {
+          cleanup = new Set();
+          this.cleanup[cleanupKey] = cleanup;
+        }
+
+        cleanup.add(idxKey);
       }
 
-      set.add(key);
-      const cleanupKey = dbutils.keyFromParts(dbutils.indexPrefix, k);
-      let cleanup = this.cleanup[cleanupKey];
-      if (!cleanup) {
-        cleanup = new Set();
-        this.cleanup[cleanupKey] = cleanup;
-      }
+      if (isIndexRemove(idx)) {
+        const oldIdxKey = dbutils.keyForIndexRemove(namespace, idx);
+        const set = this.indexes[oldIdxKey] ?? new Set();
 
-      cleanup.add(idxKey);
+        set.delete(key);
+        if (set.length === 0) {
+          delete this.indexes[oldIdxKey];
+        }
+
+        const cleanupKey = dbutils.keyFromParts(dbutils.indexPrefix, k);
+        const cleanup = this.cleanup[cleanupKey] ?? new Set();
+        cleanup.delete(oldIdxKey);
+      }
     }
     let createdAtSet = this.indexes[dbutils.keyFromParts(dbutils.createdAtPrefix, namespace)];
     if (!createdAtSet) {

@@ -35,7 +35,7 @@ export class WebhookEventsLogger extends Base {
 
     await this.eventStore().put(id, log, {
       name: indexNames.directoryId,
-      value: directory.id,
+      addValue: directory.id,
     });
 
     return log;

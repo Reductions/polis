@@ -119,12 +119,12 @@ const oidc = {
       {
         // secondary index on tenant + product
         name: IndexNames.TenantProduct,
-        value: dbutils.keyFromParts(tenant, product),
+        addValue: dbutils.keyFromParts(tenant, product),
       },
       {
         // secondary index on product
         name: IndexNames.Product,
-        value: product,
+        addValue: product,
       }
     );
 
@@ -246,12 +246,12 @@ const oidc = {
       {
         // secondary index on tenant + product
         name: IndexNames.TenantProduct,
-        value: dbutils.keyFromParts(_savedConnection.tenant, _savedConnection.product),
+        addValue: dbutils.keyFromParts(_savedConnection.tenant, _savedConnection.product),
       },
       {
         // secondary index on product
         name: IndexNames.Product,
-        value: _savedConnection.product,
+        addValue: _savedConnection.product,
       }
     );
 

@@ -338,6 +338,26 @@ export interface Index {
   value: string;
 }
 
+export interface IndexAddUpdate {
+  name: string;
+  addValue: string;
+}
+
+export interface IndexRemoveUpdate {
+  name: string;
+  removeValue: string;
+}
+
+export type IndexUpdate = IndexAddUpdate | IndexRemoveUpdate;
+
+export const isIndexAdd = (idx: IndexUpdate): idx is IndexAddUpdate => {
+  return 'addValue' in idx && Boolean(idx.addValue);
+};
+
+export const isIndexRemove = (idx: IndexUpdate): idx is IndexRemoveUpdate => {
+  return 'removeValue' in idx && Boolean(idx.removeValue);
+};
+
 export interface Records<T = any> {
   data: T[];
   pageToken?: string;
@@ -352,7 +372,7 @@ export interface DatabaseDriver {
     sortOrder?: SortOrder
   ): Promise<Records>;
   get(namespace: string, key: string): Promise<any>;
-  put(namespace: string, key: string, val: any, ttl: number, ...indexes: Index[]): Promise<any>;
+  put(namespace: string, key: string, val: any, ttl: number, ...indexes: IndexUpdate[]): Promise<any>;
   delete(namespace: string, key: string): Promise<any>;
   getByIndex(
     namespace: string,
@@ -376,7 +396,7 @@ export interface Storable {
     sortOrder?: SortOrder
   ): Promise<Records>;
   get(key: string): Promise<any>;
-  put(key: string, val: any, ...indexes: Index[]): Promise<any>;
+  put(key: string, val: any, ...indexes: IndexUpdate[]): Promise<any>;
   delete(key: string): Promise<any>;
   getByIndex(
     idx: Index,

@@ -253,6 +253,66 @@ test.describe('SCIM /api/scim/v2.0/:directoryId/Groups', () => {
     });
   });
 
+  // PATCH /api/scim/v2.0/[directoryId]/Groups/[groupId]
+  test('should be able to create a group with the old name of renamed group', async ({ request }) => {
+    const [directory] = await getDirectory(request, { tenant, product });
+    const group = await getGroupByDisplayName(request, directory, groups[0].displayName);
+
+    await request.patch(`${directory.scim.path}/Groups/${group.Resources[0].id}`, {
+      headers: {
+        Authorization: `Bearer ${directory.scim.secret}`,
+      },
+      data: {
+        schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
+        Operations: [
+          {
+            op: 'replace',
+            value: {
+              id: group.Resources[0].id,
+              displayName: 'Developers Updated',
+            },
+          },
+        ],
+      },
+    });
+
+    const createResponse = await createGroup(request, directory, groups[0]);
+
+    expect(createResponse).toMatchObject({
+      ...groups[0],
+      id: expect.any(String),
+      members: [],
+    });
+
+    // Reverse the update so that it doesn't affect other tests
+
+    // Delete the new group
+    await request.delete(`${directory.scim.path}/Groups/${createResponse.id}`, {
+      headers: {
+        Authorization: `Bearer ${directory.scim.secret}`,
+      },
+    });
+
+    // Rename back the old one
+    await request.patch(`${directory.scim.path}/Groups/${group.Resources[0].id}`, {
+      headers: {
+        Authorization: `Bearer ${directory.scim.secret}`,
+      },
+      data: {
+        schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'],
+        Operations: [
+          {
+            op: 'replace',
+            value: {
+              id: group.Resources[0].id,
+              displayName: 'Developers',
+            },
+          },
+        ],
+      },
+    });
+  });
+
   // DELETE /api/scim/v2.0/[directoryId]/Groups/[groupId]
   test('should be able to delete a group', async ({ request }) => {
     const [directory] = await getDirectory(request, { tenant, product });

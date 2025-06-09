@@ -10,6 +10,9 @@ import {
   Records,
   SortOrder,
   RequiredLogger,
+  IndexUpdate,
+  isIndexRemove,
+  isIndexAdd,
 } from '../../typings';
 import { DataSource, DataSourceOptions, In, IsNull } from 'typeorm';
 import * as dbutils from '../utils';
@@ -292,7 +295,13 @@ class Sql implements DatabaseDriver {
     return count;
   }
 
-  async put(namespace: string, key: string, val: Encrypted, ttl = 0, ...indexes: any[]): Promise<void> {
+  async put(
+    namespace: string,
+    key: string,
+    val: Encrypted,
+    ttl = 0,
+    ...indexes: IndexUpdate[]
+  ): Promise<void> {
     await this.dataSource.transaction(async (transactionalEntityManager) => {
       const dbKey = dbutils.key(namespace, key);
 
@@ -312,22 +321,28 @@ class Sql implements DatabaseDriver {
         await transactionalEntityManager.save(ttlRec);
       }
 
-      // no ttl support for secondary indexes
       for (const idx of indexes || []) {
-        const key = dbutils.keyForIndex(namespace, idx);
-        const rec = await transactionalEntityManager.findOneBy(this.JacksonIndex, {
-          key,
-          storeKey: store.key,
-        });
-        if (!rec) {
-          const ji = new this.JacksonIndex();
-          ji.key = key;
-          if (this.options.engine === 'planetscale') {
-            ji.storeKey = store.key;
-          } else {
-            ji.store = store;
+        if (isIndexAdd(idx)) {
+          const key = dbutils.keyForIndexAdd(namespace, idx);
+          const rec = await transactionalEntityManager.findOneBy(this.JacksonIndex, {
+            key,
+            storeKey: store.key,
+          });
+          if (!rec) {
+            const ji = new this.JacksonIndex();
+            ji.key = key;
+            if (this.options.engine === 'planetscale') {
+              ji.storeKey = store.key;
+            } else {
+              ji.store = store;
+            }
+            await transactionalEntityManager.save(ji);
           }
-          await transactionalEntityManager.save(ji);
+        }
+
+        if (isIndexRemove(idx)) {
+          const oldKey = dbutils.keyForIndexRemove(namespace, idx);
+          await transactionalEntityManager.delete(this.JacksonIndex, { key: oldKey });
         }
       }
     });

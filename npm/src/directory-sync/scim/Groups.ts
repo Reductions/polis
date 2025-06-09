@@ -7,6 +7,7 @@ import type {
   Response,
   GroupMembership,
   Records,
+  IndexUpdate,
 } from '../../typings';
 import * as dbutils from '../../db/utils';
 import { apiError, JacksonError } from '../../controller/error';
@@ -45,11 +46,11 @@ export class Groups extends Base {
         group,
         {
           name: indexNames.directoryIdDisplayname,
-          value: dbutils.keyFromParts(directoryId, name),
+          addValue: dbutils.keyFromParts(directoryId, name),
         },
         {
           name: indexNames.directoryId,
-          value: directoryId,
+          addValue: directoryId,
         }
       );
 
@@ -146,7 +147,8 @@ export class Groups extends Base {
 
   // Update the group data
   public async update(
-    id: string,
+    storedGroup: Group,
+    directoryId: string,
     param: {
       name: string;
       raw: any;
@@ -155,13 +157,27 @@ export class Groups extends Base {
     const { name, raw } = param;
 
     const group: Group = {
-      id,
+      id: storedGroup.id,
       name,
       raw,
     };
 
+    const indexUpdates: IndexUpdate[] = [];
+
+    if (storedGroup.name !== name) {
+      indexUpdates.push({
+        name: indexNames.directoryIdDisplayname,
+        removeValue: dbutils.keyFromParts(directoryId, storedGroup.name),
+      });
+
+      indexUpdates.push({
+        name: indexNames.directoryId,
+        addValue: dbutils.keyFromParts(directoryId, name),
+      });
+    }
+
     try {
-      await this.store('groups').put(id, group);
+      await this.store('groups').put(storedGroup.id, group, ...indexUpdates);
 
       return { data: group, error: null };
     } catch (err: any) {
@@ -200,7 +216,7 @@ export class Groups extends Base {
       },
       {
         name: indexNames.groupId,
-        value: groupId,
+        addValue: groupId,
       }
     );
   }
